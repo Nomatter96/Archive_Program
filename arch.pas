@@ -4,7 +4,7 @@ uses
   {$IFDEF UNIX}{$IFDEF UseCThreads}
   cthreads,
   {$ENDIF}{$ENDIF}
-  Classes, SysUtils, CustApp, crt, UCompress;
+  Classes, SysUtils, CustApp, crt;
 
 type
   { TMyApplication }
@@ -15,12 +15,15 @@ type
     constructor Create(TheOwner: TComponent); override;
     destructor Destroy; override;
     procedure WriteHelp; virtual;
-    procedure ReadFile;
+    procedure ReadFile(Path: String);
   private
     fname: string;
     fi: File;
-    arr: array of byte;
+    ArrOfSymbol: array of byte;
   end;
+
+  const NameNewFile = 2;
+  const FilePath = 3;
 
 { TMyApplication }
 
@@ -44,9 +47,7 @@ begin
   end;
   if HasOption('a', 'add') then
   begin
-    read(fname);
-
-    Write('created new arch ', fname);
+    ReadFile(ParamStr(FilePath));
     Terminate;
     Exit;
   end;
@@ -86,17 +87,20 @@ begin
        + '-h - help');
 end;
 
-procedure TMyApplication.ReadFile;
+procedure TMyApplication.ReadFile(Path: String);
 var
   NumRead, NumWrite: Word;
   i: integer = 0;
 begin
+  AssignFile(fi, Path);
+  reset(fi, 1);
   repeat
-    SetLength(arr, Length(arr) + 1);
-    BlockRead(fi, arr[i], NumRead, NumWrite);
-    write( arr[i], ' ');
+    SetLength(ArrOfSymbol, Length(ArrOfSymbol) + 1);
+    BlockRead(fi, ArrOfSymbol[i], NumRead, NumWrite);
+    write( ArrOfSymbol[i], ' ');
     inc(i);
   until (NumRead = 0) or (NumWrite <> NumRead);
+  close(fi);
 end;
 
 var
