@@ -14,6 +14,7 @@ type
     value: byte;
     f: integer;
     left, right: Tree;
+    node: boolean;
   end;
 
   Symb = record
@@ -24,7 +25,7 @@ type
 
   ByteArray = array of byte;
 var
-  k, m: integer;
+  k, m, p: integer;
   tr: Tree;
   symbol: array of Symb;
   FreqTable: array of byte;
@@ -130,6 +131,7 @@ var
         Result := new(Tree);
         Result^.value := FreqTable[i];
         Result^.f := Count[i];
+        Result^.node:=false;
         inc(i);
     end
     else begin
@@ -148,6 +150,7 @@ var
     tr^.left := b;
     tr^.f := a^.f + b^.f;
     tr^.value := -1;
+    tr^.node:=true;
     node[High(node)] := tr;
     Result := tr;
   end;
@@ -161,7 +164,7 @@ end;
 
 procedure GetSymb(tr: tree; l: integer; code: string);
 begin
-  if tr^.value <> -1 then
+  if not tr^.node then
   begin
     SetLength(symbol, Length(symbol) + 1);
     symbol[high(symbol)].value := tr^.value;
@@ -171,9 +174,9 @@ begin
   else
   begin
      if tr^.left <> nil then
-       GetSymb(tr^.left, l + 1,  code + '0');
+       GetSymb(tr^.left, l + 1,  '');
     if tr^.right <> nil then
-     GetSymb(tr^.right, l + 1, code + '1');
+     GetSymb(tr^.right, l + 1, '');
   end;
 end;
 
@@ -182,7 +185,7 @@ var i: integer;
 begin
   for i:= 0 to high(Symbol) do
     if Symbol[i].value = a then begin
-      result:=a;
+      result:=i;
       exit;
   end;
 end;
@@ -192,6 +195,7 @@ var i: integer;
   function Increase(s: string): string;
   var t: integer;
   begin
+
        for t := length(s) downto 1 do
       if s[t] = '0' then begin
         s[t] :='1';
@@ -202,13 +206,12 @@ var i: integer;
   end;
 begin
   SortArray(0, High(symbol));
-  symbol[i].code:='';
-  for i:= 1 to length(symbol[0].code) do
+  for i:= 1 to symbol[0].h do
     symbol[0].code:= symbol[i].code + '0';
   for i:= 1 to high(symbol) do
     if symbol[i].h = symbol[i-1].h then
-     symbol[i].code:=Increase(symbol[i].code) else
-       Symbol[i].code:=Increase(symbol[i].code) + '0';
+     symbol[i].code:=Increase(symbol[i-1].code) else
+       Symbol[i].code:=Increase(symbol[i-1].code) + '0';
 end;
 
 function Compress(InputArray: array of byte): ByteArray;
@@ -217,13 +220,13 @@ var
  i, j, pos, index: integer;
 begin
   getFrequency(InputArray);
-  buildtree(0, 0);
-  GetSymb(tr, 0, '');
+ // tr:= buildtree(0, 0);
+  GetSymb(buildtree(0, 0), 0, '');
 
   MakeNewCodes();
-  {pos - индекс внутри байта
-  index - номер байта}
   Setlength(Result, length(Result)+1);
+  index:=0;
+  pos:=0;
   for i:= 0 to high(InputArray) do begin
     k:=findsym(InputArray[i]);
     curcode:=symbol[k].code;
@@ -244,14 +247,14 @@ end;
 
 
 begin
- {   Assign(input, 'input.txt');
+{   Assign(input, 'input.txt');
     Assign(output, 'output.txt');
     reset(input);
     rewrite(output);
 
-   Compress(ex);
+    Compress(ex);
 
 
     Close(input);
-    Close(output);  }
+    Close(output);   }
 end.    
