@@ -82,7 +82,7 @@ end;
 
 procedure TCompress.sortArray(l, r: longint);
 var
-  j, i, mid, samp: longint;
+  j, i, mid: longint;
   buf: Symb;
 begin
   i := l;
@@ -110,28 +110,22 @@ end;
 
 procedure TCompress.getFrequency(Arr: array of byte);
 var
-  Found: boolean;
   a: byte;
-  i, j: integer;
+  i: integer;
 begin
+  Setlength(FreqTable, 256);
+  Setlength(Count, 256);
+  for a:= 0 to high(FreqTable) do
+    FreqTable[a]:= a;
   for k := 0 to high(Arr) do
   begin
-    found := False;
     a := Arr[k];
     for i := 0 to High(FreqTable) do
       if a = FreqTable[i] then
       begin
         Inc(Count[i]);
-        found := True;
         break;
       end;
-    if not found then
-    begin
-      SetLength(FreqTable, Length(FreqTable) + 1);
-      SetLength(Count, Length(Count) + 1);
-      FreqTable[High(FreqTable)] := a;
-      Inc(Count[High(Count)]);
-    end;
   end;
   Sort(0, High(FreqTable));
 end;
@@ -182,7 +176,6 @@ begin
   until (i > Length(FreqTable) - 1) and (j >= Length(node) - 1);
 end;
 
-
 procedure TCompress.GetSymb(tr: tree; l: integer; code: string);
 begin
   if not tr^.node then
@@ -215,24 +208,21 @@ end;
 
 procedure TCompress.MakeNewCodes();
 var
-  i: integer;
-
+  i, j: integer;
   function Increase(s: string): string;
-  var
-    t: integer;
-  begin
-
-    for t := length(s) downto 1 do
-      if s[t] = '0' then
-      begin
-        s[t] := '1';
-        Result := s;
-        exit;
-      end
-      else
-        s[t] := '0';
-  end;
-
+    var
+      t: integer;
+    begin
+      for t := length(s) downto 1 do
+        if s[t] = '0' then
+        begin
+          s[t] := '1';
+          Result := s;
+          exit;
+        end
+        else
+          s[t] := '0';
+    end;
 begin
   SortArray(0, High(symbol));
   for i := 1 to symbol[0].h do
@@ -240,22 +230,20 @@ begin
   for i := 1 to high(symbol) do
     if symbol[i].h = symbol[i - 1].h then
       symbol[i].code := Increase(symbol[i - 1].code)
-    else
-      Symbol[i].code := Increase(symbol[i - 1].code) + '0';
+    else begin
+      Symbol[i].code := Increase(symbol[i - 1].code);
+      for j:= 1 to (symbol[i].h - symbol[i - 1].h) do
+         symbol[i].code := symbol[i].code + '0';
+    end;
 end;
-
 
 function TCompress.Compress(var InputArray: array of byte): ByteArray;
 var
   curcode: string;
   i, j, pos, index: integer;
 begin
-{  for i := 0 to High(InputArray) do
-    write(InputArray[i], '/');
-  readln;     }
   getFrequency(InputArray);
   GetSymb(buildtree(0, 0), 0, '');
-
   MakeNewCodes();
   Setlength(Result, length(Result) + 1);
   index := 0;
@@ -266,8 +254,7 @@ begin
     curcode := symbol[k].code;
     for j := 1 to length(curcode) do
     begin
-      if pos = 0 then
-      begin
+      if pos = 0 then begin
         pos := 7;
         Inc(index);
         Setlength(Result, length(Result) + 1);
@@ -277,13 +264,9 @@ begin
       dec(pos);
     end;
   end;
-  for i := 0 to high(Result) do
-    Write(Result[i], ' / ');
-  readln;
 end;
-
 
 initialization
 
   Compress := TCompress.Create();
-end.
+end.    
