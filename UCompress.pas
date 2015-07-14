@@ -70,7 +70,7 @@ var
 begin
   i := l;
   j := r;
-  mid := Count[(i + j) div 2];
+  mid := symbol[(i + j) div 2].h;
   repeat
     while symbol[i].h < mid do
       inc(i);
@@ -86,20 +86,20 @@ begin
     end;
   until i > j;
   if i < r then
-    sort(i, r);
+    sortArray(i, r);
   if j > l then
-    sort(l, j);
+    sortArray(l, j);
 end;
 
-procedure getFrequency(str: string);
+procedure getFrequency(Arr: array of char);
 var
   Found: boolean;
   a: char;
   i, j:integer;
 begin
- for k:= 1 to length(str) do begin
+ for k:= 0 to high(Arr) do begin
     found := False;
-    a:=str[k];
+    a:=Arr[k];
     for i := 0 to High(FreqTable) do
       if a = FreqTable[i] then begin
         inc(Count[i]);
@@ -114,7 +114,6 @@ begin
       inc(count[High(Count)]);
     end;
     end;
- // until EOF();
   Sort(0, High(FreqTable));
 end;
 
@@ -159,49 +158,44 @@ begin
   until (i > Length(FreqTable)-1) and (j >= Length(node)-1);
 end;
 
-procedure GetSymb(tr: tree; l: integer; code: string);
+procedure GetSymb(tr: tree; l: integer{; code: string});
 begin
   if tr^.value <> '/' then
   begin
     SetLength(symbol, Length(symbol) + 1);
     symbol[high(symbol)].value := tr^.value;
     symbol[high(symbol)].h := l;
-    symbol[high(symbol)].code:=code;
+//    symbol[high(symbol)].code:=code;
   end
   else
   begin
      if tr^.left <> nil then
-       GetSymb(tr^.left, l + 1,  code + '0');
+       GetSymb(tr^.left, l + 1{,  code + '0'});
     if tr^.right <> nil then
-      GetSymb(tr^.right, l + 1, code + '1');
+     GetSymb(tr^.right, l + 1{, code + '1'});
   end;
 end;
 
-procedure Compress();
+procedure Compress(InputArray: array of char);
+var i: integer;
 begin
-{  SortArray(0, High(symbol));
-  symbol[0].code := 0;
-  for i := 1 to High(symbol) do
-    if symbol[i].h = symbol[i - 1].h then
-      symbol[i].code := symbol[i].code + 1
-    else
-      symbol[i].code := (symbol[i - 1].code + 1) shl 1; }
-end;
-
-begin
-  Assign(input, 'input.txt');
-  Assign(output, 'output.txt');
-  reset(input);
-  rewrite(output);
-  Read(s);
-  getFrequency(s);
+  getFrequency(InputArray);
   buildtree(0, 0);
-  GetSymb(tr, 0, '');
-  for k:=0 to high(symbol) do  begin
-    write(symbol[k].value, ' ', symbol[k].code, ' / ');
-  end;
+  GetSymb(tr, 0);
+  SortArray(0, High(symbol));
+ { for k:=0 to high(symbol) do
+    write(symbol[k].value, ' ', symbol[k].code, ' / ');   }
+end;
+
+begin
+    {Assign(input, 'input.txt');
+    Assign(output, 'output.txt');
+    reset(input);
+    rewrite(output);
+    Read(s);
+    Compress(s);
 
 
-  Close(input);
-  Close(output);
-end.   
+    Close(input);
+    Close(output);}
+end.
