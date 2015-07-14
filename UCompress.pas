@@ -11,31 +11,32 @@ type
   Tree = ^TTree;
 
   TTree = record
-    value: char;
+    value: byte;
     f: integer;
     left, right: Tree;
   end;
 
   Symb = record
-    value: char;
+    value: byte;
     h: integer;
     code: string;
   end;
 
+  ByteArray = array of byte;
 var
-  k: integer;
+  k, m: integer;
   tr: Tree;
   symbol: array of Symb;
-  FreqTable: array of char;
+  FreqTable: array of byte;
   Count: array of integer;
   s: string;
-
+  ex: array of byte;
 implementation
 
 procedure sort(l, r: longint);
 var
   j, i, mid, samp: longint;
-  buf: char;
+  buf: byte;
 begin
   i := l;
   j := r;
@@ -91,10 +92,10 @@ begin
     sortArray(l, j);
 end;
 
-procedure getFrequency(Arr: array of char);
+procedure getFrequency(Arr: array of byte);
 var
   Found: boolean;
-  a: char;
+  a: byte;
   i, j:integer;
 begin
  for k:= 0 to high(Arr) do begin
@@ -146,7 +147,7 @@ var
     tr^.right := a;
     tr^.left := b;
     tr^.f := a^.f + b^.f;
-    tr^.value := '/';
+    tr^.value := -1;
     node[High(node)] := tr;
     Result := tr;
   end;
@@ -158,44 +159,99 @@ begin
   until (i > Length(FreqTable)-1) and (j >= Length(node)-1);
 end;
 
-procedure GetSymb(tr: tree; l: integer{; code: string});
+procedure GetSymb(tr: tree; l: integer; code: string);
 begin
-  if tr^.value <> '/' then
+  if tr^.value <> -1 then
   begin
     SetLength(symbol, Length(symbol) + 1);
     symbol[high(symbol)].value := tr^.value;
     symbol[high(symbol)].h := l;
-//    symbol[high(symbol)].code:=code;
+    symbol[high(symbol)].code:=code;
   end
   else
   begin
      if tr^.left <> nil then
-       GetSymb(tr^.left, l + 1{,  code + '0'});
+       GetSymb(tr^.left, l + 1,  code + '0');
     if tr^.right <> nil then
-     GetSymb(tr^.right, l + 1{, code + '1'});
+     GetSymb(tr^.right, l + 1, code + '1');
   end;
 end;
 
-procedure Compress(InputArray: array of char);
+function findsym(a: byte): byte;
 var i: integer;
+begin
+  for i:= 0 to high(Symbol) do
+    if Symbol[i].value = a then begin
+      result:=a;
+      exit;
+  end;
+end;
+
+procedure MakeNewCodes();
+var i: integer;
+  function Increase(s: string): string;
+  var t: integer;
+  begin
+       for t := length(s) downto 1 do
+      if s[t] = '0' then begin
+        s[t] :='1';
+        result:=s;
+        exit;;
+      end
+     else s[t]:= '0';
+  end;
+begin
+  SortArray(0, High(symbol));
+  symbol[i].code:='';
+  for i:= 1 to length(symbol[0].code) do
+    symbol[0].code:= symbol[i].code + '0';
+  for i:= 1 to high(symbol) do
+    if symbol[i].h = symbol[i-1].h then
+     symbol[i].code:=Increase(symbol[i].code) else
+       Symbol[i].code:=Increase(symbol[i].code) + '0';
+end;
+
+function Compress(InputArray: array of byte): ByteArray;
+var
+ curcode: string;
+ i, j, pos, index: integer;
 begin
   getFrequency(InputArray);
   buildtree(0, 0);
-  GetSymb(tr, 0);
-  SortArray(0, High(symbol));
- { for k:=0 to high(symbol) do
-    write(symbol[k].value, ' ', symbol[k].code, ' / ');   }
+  GetSymb(tr, 0, '');
+
+  MakeNewCodes();
+  {pos - индекс внутри байта
+  index - номер байта}
+  Setlength(Result, length(Result)+1);
+  for i:= 0 to high(InputArray) do begin
+    k:=findsym(InputArray[i]);
+    curcode:=symbol[k].code;
+      for j:= 1 to length(curcode) do begin
+        if pos > 7 then begin
+          pos:=0;
+          inc(index);
+          Setlength(Result, length(Result)+1);
+        end;
+        if curcode[j] = '1' then
+          result[index]:=  result[index] or (1 shl pos);
+        inc(pos);
+  end;
+  end;
+ for i:= 0 to high(result) do
+   write(result[i], ' / ');
 end;
 
+
 begin
-    {Assign(input, 'input.txt');
+ {   Assign(input, 'input.txt');
     Assign(output, 'output.txt');
     reset(input);
     rewrite(output);
-    Read(s);
-    Compress(s);
+
+   Compress(ex);
 
 
     Close(input);
-    Close(output);}
-end.
+    Close(output);  }
+end.    
