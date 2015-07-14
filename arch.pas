@@ -31,7 +31,7 @@ procedure TMyApplication.DoRun;
 var
   ErrorMsg: String;
 begin
-  ErrorMsg := CheckOptions('h a e','help add extract');
+  ErrorMsg := CheckOptions('h a e c','help add extract create');
   if ErrorMsg <> '' then
   begin
     ShowException(Exception.Create(ErrorMsg));
@@ -53,7 +53,13 @@ begin
   end;
   if HasOption('e', 'extract') then
   begin
-    Write('extract data');
+    Write('data extracted to ... ');
+    Terminate;
+    Exit;
+  end;
+  if HasOption('c', 'create') then
+  begin
+    Write('created new archive ');
     Terminate;
     Exit;
   end;
@@ -82,8 +88,9 @@ begin
        + '-Trofimova O.' + LineEnding
        + LineEnding
        + 'Commands:' + LineEnding
-       + '-a - create archive (Press Enter and put name of archive)' + LineEnding
-       + '-e - extract files (Press Enter and put path for extracting)' + LineEnding
+       + '-c [New Archive Name] [Path to file] - create new archive' + LineEnding
+       + '-a [Archive] [Path to file] - add to archive' + LineEnding
+       + '-e [Archive] [Path to extract] - extract files' + LineEnding
        + '-h - help');
 end;
 
