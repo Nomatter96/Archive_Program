@@ -18,8 +18,8 @@ type
     procedure ReadFile(Path: String);
     procedure WriteFile(Path: String);
   private
-    Buf: array [0..2048] of Byte;
-  end;
+    Buf: array of Byte;
+end;
 
   const NewFileName = 2;
   const FilePath = 3;
@@ -62,7 +62,6 @@ begin
     Terminate;
     Exit;
   end;
-
   WriteHelp;
   Terminate;
 end;
@@ -96,28 +95,33 @@ end;
 procedure TMyApplication.ReadFile(Path: String);
 var
   fi: File;
-  NumRead: Word;
-  i: integer = 0;
+  b: Byte;
+  NumRead: Int64;
+  i: int64 = 0;
 begin
   AssignFile(fi, Path);
   reset(fi, 1);
+  SetLength(Buf, FileSize(fi));
   repeat
-    BlockRead(fi, Buf, SizeOf(Buf), NumRead);
+    BlockRead(fi, buf[i], SizeOf(buf), NumRead);
+    Inc(i, SizeOf(buf));
   until (NumRead = 0);
   CloseFile(fi);
 end;
 
 procedure TMyApplication.WriteFile(Path: String);
 var
-  fo: File;
-  NumWrite: Word;
+  fo: File of Byte;
+  i: int64 = 0;
 begin
-  //AssignFile(fo, Path);
-  //Rewrite(fo, 1);
-  //repeat
-  //  BlockWrite(fo, Buf, SizeOf(Buf), NumWrite);
-  //until NumWrite = 0;
-  //CloseFile(fo);
+  AssignFile(fo, Path);
+  Rewrite(fo, 1);
+  While i <= Length(Buf) do
+  begin
+    BlockWrite(fo, Buf[i], SizeOf(Buf));
+    inc(i, SizeOf(Buf));
+  end;
+  CloseFile(fo);
 end;
 
 var
