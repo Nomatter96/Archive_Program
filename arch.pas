@@ -4,7 +4,7 @@ uses
   {$IFDEF UNIX}{$IFDEF UseCThreads}
   cthreads,
   {$ENDIF}{$ENDIF}
-  Classes, SysUtils, CustApp, crt;
+  Classes, SysUtils, CustApp, crt, UCompress;
 
 type
   { TMyApplication }
@@ -16,13 +16,12 @@ type
     destructor Destroy; override;
     procedure WriteHelp; virtual;
     procedure ReadFile(Path: String);
+    procedure WriteFile(Path: String);
   private
-    fname: string;
-    fi: File;
-    ArrOfSymbol: array of byte;
+    Buf: array [0..2048] of Byte;
   end;
 
-  const NameNewFile = 2;
+  const NewFileName = 2;
   const FilePath = 3;
 
 { TMyApplication }
@@ -39,9 +38,9 @@ begin
     Exit;
   end;
 
-  if HasOption('h', 'help') then
+  if HasOption('c', 'create') then
   begin
-    WriteHelp;
+    ReadFile(ParamStr(FilePath));
     Terminate;
     Exit;
   end;
@@ -57,9 +56,9 @@ begin
     Terminate;
     Exit;
   end;
-  if HasOption('c', 'create') then
+  if HasOption('h', 'help') then
   begin
-    Write('created new archive ');
+    WriteHelp;
     Terminate;
     Exit;
   end;
@@ -96,18 +95,29 @@ end;
 
 procedure TMyApplication.ReadFile(Path: String);
 var
-  NumRead, NumWrite: Word;
+  fi: File;
+  NumRead: Word;
   i: integer = 0;
 begin
   AssignFile(fi, Path);
   reset(fi, 1);
   repeat
-    SetLength(ArrOfSymbol, Length(ArrOfSymbol) + 1);
-    BlockRead(fi, ArrOfSymbol[i], NumRead, NumWrite);
-    write( ArrOfSymbol[i], ' ');
-    inc(i);
-  until (NumRead = 0) or (NumWrite <> NumRead);
-  close(fi);
+    BlockRead(fi, Buf, SizeOf(Buf), NumRead);
+  until (NumRead = 0);
+  CloseFile(fi);
+end;
+
+procedure TMyApplication.WriteFile(Path: String);
+var
+  fo: File;
+  NumWrite: Word;
+begin
+  //AssignFile(fo, Path);
+  //Rewrite(fo, 1);
+  //repeat
+  //  BlockWrite(fo, Buf, SizeOf(Buf), NumWrite);
+  //until NumWrite = 0;
+  //CloseFile(fo);
 end;
 
 var
@@ -115,7 +125,7 @@ var
 
 begin
   Application := TMyApplication.Create(nil);
-  Application.Title := 'My Application';
-  Application.DoRun;
+  Application.Title := 'Archive Program';
+  Application.Run;
   Application.Free;
 end.
