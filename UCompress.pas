@@ -10,31 +10,46 @@ uses
 type
   Tree = ^TTree;
 
+  ByteArray = array of byte;
+
   TTree = record
-    value: byte;
+    Value: byte;
     f: integer;
     left, right: Tree;
     node: boolean;
   end;
 
   Symb = record
-    value: byte;
+    Value: byte;
     h: integer;
     code: string;
   end;
 
-  ByteArray = array of byte;
+  TCompress = class
+  public
+    procedure sort(l, r: longint);
+    procedure sortArray(l, r: longint);
+    procedure getFrequency(Arr: array of byte);
+    function buildtree(i, j: integer): tree;
+    procedure GetSymb(tr: tree; l: integer; code: string);
+    function findsym(a: byte): byte;
+    procedure MakeNewCodes();
+    function Compress(var InputArray: array of byte): ByteArray;
+  end;
+
 var
-  k, m, p: integer;
+  Compress: TCompress;
+  k, m: integer;
   tr: Tree;
   symbol: array of Symb;
   FreqTable: array of byte;
   Count: array of integer;
   s: string;
   ex: array of byte;
+
 implementation
 
-procedure sort(l, r: longint);
+procedure TCompress.sort(l, r: longint);
 var
   j, i, mid, samp: longint;
   buf: byte;
@@ -44,9 +59,9 @@ begin
   mid := Count[(i + j) div 2];
   repeat
     while Count[i] < mid do
-      inc(i);
+      Inc(i);
     while Count[j] > mid do
-      dec(j);
+      Dec(j);
     if i <= j then
     begin
       buf := FreqTable[i];
@@ -55,8 +70,8 @@ begin
       samp := Count[i];
       Count[i] := Count[j];
       Count[j] := samp;
-      inc(i);
-      dec(j);
+      Inc(i);
+      Dec(j);
     end;
   until i > j;
   if i < r then
@@ -65,7 +80,7 @@ begin
     sort(l, j);
 end;
 
-procedure sortArray(l, r: longint);
+procedure TCompress.sortArray(l, r: longint);
 var
   j, i, mid, samp: longint;
   buf: Symb;
@@ -75,16 +90,16 @@ begin
   mid := symbol[(i + j) div 2].h;
   repeat
     while symbol[i].h < mid do
-      inc(i);
+      Inc(i);
     while symbol[j].h > mid do
-      dec(j);
+      Dec(j);
     if i <= j then
     begin
       buf := symbol[i];
       symbol[i] := symbol[j];
       symbol[j] := buf;
-      inc(i);
-      dec(j);
+      Inc(i);
+      Dec(j);
     end;
   until i > j;
   if i < r then
@@ -93,51 +108,55 @@ begin
     sortArray(l, j);
 end;
 
-procedure getFrequency(Arr: array of byte);
+procedure TCompress.getFrequency(Arr: array of byte);
 var
   Found: boolean;
   a: byte;
-  i, j:integer;
+  i, j: integer;
 begin
- for k:= 0 to high(Arr) do begin
+  for k := 0 to high(Arr) do
+  begin
     found := False;
-    a:=Arr[k];
+    a := Arr[k];
     for i := 0 to High(FreqTable) do
-      if a = FreqTable[i] then begin
-        inc(Count[i]);
-      found := True;
-      break;
-    end;
+      if a = FreqTable[i] then
+      begin
+        Inc(Count[i]);
+        found := True;
+        break;
+      end;
     if not found then
     begin
       SetLength(FreqTable, Length(FreqTable) + 1);
       SetLength(Count, Length(Count) + 1);
       FreqTable[High(FreqTable)] := a;
-      inc(count[High(Count)]);
+      Inc(Count[High(Count)]);
     end;
-    end;
+  end;
   Sort(0, High(FreqTable));
 end;
 
-function buildtree(i, j: integer): tree;
+function TCompress.buildtree(i, j: integer): tree;
 var
   l, r: tree;
   node: array of Tree;
+
   function FindNode(): tree;
   begin
-   if (length(node) <= j) or( (i < Length(FreqTable))
-    and (Count[i] <= node[j]^.f)) then
+    if (length(node) <= j) or ((i < Length(FreqTable)) and
+      (Count[i] <= node[j]^.f)) then
     begin
-        Result := new(Tree);
-        Result^.value := FreqTable[i];
-        Result^.f := Count[i];
-        Result^.node:=false;
-        inc(i);
+      Result := new(Tree);
+      Result^.Value := FreqTable[i];
+      Result^.f := Count[i];
+      Result^.node := False;
+      Inc(i);
     end
-    else begin
+    else
+    begin
       Result := node[j];
-      if j<(length(node)) then
-        inc(j);
+      if j < (length(node)) then
+        Inc(j);
     end;
   end;
 
@@ -149,112 +168,122 @@ var
     tr^.right := a;
     tr^.left := b;
     tr^.f := a^.f + b^.f;
-    tr^.value := -1;
-    tr^.node:=true;
+    tr^.Value := -1;
+    tr^.node := True;
     node[High(node)] := tr;
     Result := tr;
   end;
+
 begin
   repeat
     l := FindNode;
     r := FindNode;
     Result := MakeNode(l, r);
-  until (i > Length(FreqTable)-1) and (j >= Length(node)-1);
+  until (i > Length(FreqTable) - 1) and (j >= Length(node) - 1);
 end;
 
-procedure GetSymb(tr: tree; l: integer; code: string);
+
+procedure TCompress.GetSymb(tr: tree; l: integer; code: string);
 begin
   if not tr^.node then
   begin
     SetLength(symbol, Length(symbol) + 1);
-    symbol[high(symbol)].value := tr^.value;
+    symbol[high(symbol)].Value := tr^.Value;
     symbol[high(symbol)].h := l;
-    symbol[high(symbol)].code:=code;
+    symbol[high(symbol)].code := code;
   end
   else
   begin
-     if tr^.left <> nil then
-       GetSymb(tr^.left, l + 1,  '');
+    if tr^.left <> nil then
+      GetSymb(tr^.left, l + 1, '');
     if tr^.right <> nil then
-     GetSymb(tr^.right, l + 1, '');
+      GetSymb(tr^.right, l + 1, '');
   end;
 end;
 
-function findsym(a: byte): byte;
-var i: integer;
+function TCompress.findsym(a: byte): byte;
+var
+  i: integer;
 begin
-  for i:= 0 to high(Symbol) do
-    if Symbol[i].value = a then begin
-      result:=i;
+  for i := 0 to high(Symbol) do
+    if Symbol[i].Value = a then
+    begin
+      Result := i;
       exit;
-  end;
+    end;
 end;
 
-procedure MakeNewCodes();
-var i: integer;
+procedure TCompress.MakeNewCodes();
+var
+  i: integer;
+
   function Increase(s: string): string;
-  var t: integer;
+  var
+    t: integer;
   begin
 
-       for t := length(s) downto 1 do
-      if s[t] = '0' then begin
-        s[t] :='1';
-        result:=s;
-        exit;;
+    for t := length(s) downto 1 do
+      if s[t] = '0' then
+      begin
+        s[t] := '1';
+        Result := s;
+        exit;
       end
-     else s[t]:= '0';
+      else
+        s[t] := '0';
   end;
+
 begin
   SortArray(0, High(symbol));
-  for i:= 1 to symbol[0].h do
-    symbol[0].code:= symbol[i].code + '0';
-  for i:= 1 to high(symbol) do
-    if symbol[i].h = symbol[i-1].h then
-     symbol[i].code:=Increase(symbol[i-1].code) else
-       Symbol[i].code:=Increase(symbol[i-1].code) + '0';
+  for i := 1 to symbol[0].h do
+    symbol[0].code := symbol[0].code + '0';
+  for i := 1 to high(symbol) do
+    if symbol[i].h = symbol[i - 1].h then
+      symbol[i].code := Increase(symbol[i - 1].code)
+    else
+      Symbol[i].code := Increase(symbol[i - 1].code) + '0';
 end;
 
-function Compress(InputArray: array of byte): ByteArray;
+
+function TCompress.Compress(var InputArray: array of byte): ByteArray;
 var
- curcode: string;
- i, j, pos, index: integer;
+  curcode: string;
+  i, j, pos, index: integer;
 begin
+{  for i := 0 to High(InputArray) do
+    write(InputArray[i], '/');
+  readln;     }
   getFrequency(InputArray);
- // tr:= buildtree(0, 0);
   GetSymb(buildtree(0, 0), 0, '');
 
   MakeNewCodes();
-  Setlength(Result, length(Result)+1);
-  index:=0;
-  pos:=0;
-  for i:= 0 to high(InputArray) do begin
-    k:=findsym(InputArray[i]);
-    curcode:=symbol[k].code;
-      for j:= 1 to length(curcode) do begin
-        if pos > 7 then begin
-          pos:=0;
-          inc(index);
-          Setlength(Result, length(Result)+1);
-        end;
-        if curcode[j] = '1' then
-          result[index]:=  result[index] or (1 shl pos);
-        inc(pos);
+  Setlength(Result, length(Result) + 1);
+  index := 0;
+  pos := 7;
+  for i := 0 to high(InputArray) do
+  begin
+    k := findsym(InputArray[i]);
+    curcode := symbol[k].code;
+    for j := 1 to length(curcode) do
+    begin
+      if pos = 0 then
+      begin
+        pos := 7;
+        Inc(index);
+        Setlength(Result, length(Result) + 1);
+      end;
+      if curcode[j] = '1' then
+        Result[index] := Result[index] or (1 shl pos);
+      dec(pos);
+    end;
   end;
-  end;
- for i:= 0 to high(result) do
-   write(result[i], ' / ');
+  for i := 0 to high(Result) do
+    Write(Result[i], ' / ');
+  readln;
 end;
 
 
-begin
-{   Assign(input, 'input.txt');
-    Assign(output, 'output.txt');
-    reset(input);
-    rewrite(output);
+initialization
 
-    Compress(ex);
-
-
-    Close(input);
-    Close(output);   }
-end.    
+  Compress := TCompress.Create();
+end.
