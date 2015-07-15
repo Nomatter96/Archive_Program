@@ -4,7 +4,7 @@ uses
   {$IFDEF UNIX}{$IFDEF UseCThreads}
   cthreads,
   {$ENDIF}{$ENDIF}
-  Classes, SysUtils, CustApp, crt, UCompress, UDeCompress;
+  Classes, SysUtils, CustApp, crt, UCompress;
 
 type
   { TMyApplication }
@@ -21,9 +21,6 @@ type
     Buf: array of Byte;
 end;
 
-  const NewFileName = 2;
-  const FilePath = 3;
-
 { TMyApplication }
 
 procedure TMyApplication.DoRun;
@@ -31,7 +28,7 @@ var
   ErrorMsg: String;
 
 begin
-  ErrorMsg := CheckOptions('h a e c','help add extract create');
+  ErrorMsg := CheckOptions('c a e h','create add extract help');
   if ErrorMsg <> '' then
   begin
     ShowException(Exception.Create(ErrorMsg));
@@ -41,15 +38,16 @@ begin
 
   if HasOption('c', 'create') then
   begin
-    ReadFile(ParamStr(FilePath));
-    Buf := Compress.Compress(Buf);
-    WriteFile(ParamStr(NewFileName));
+    ReadFile(ParamStr(3));
+    if ParamStr(2) = 'Compress' then
+      Buf := Compress.Compress(Buf);
+    WriteFile(ParamStr(2));
     Terminate;
     Exit;
   end;
   if HasOption('a', 'add') then
   begin
-    ReadFile(ParamStr(FilePath));
+    ReadFile(ParamStr(3));
     Terminate;
     Exit;
   end;
@@ -89,9 +87,9 @@ begin
        + '-Trofimova O.' + LineEnding
        + LineEnding
        + 'Commands:' + LineEnding
-       + '-c [nope or Compress] [New Archive Name] [Path to file] - create new archive' + LineEnding
-       + '-a [Archive] [Path to file] - add to archive' + LineEnding
-       + '-e [Archive] [Path to extract] - extract files' + LineEnding
+       + '-c [Archive\Compress] [New Archive Name] [Path to file] - create new archive' + LineEnding
+       + '-a [Path to archive] [Path to file] - add to archive' + LineEnding
+       + '-e [Path to archive] [Path to extract] - extract files' + LineEnding
        + '-h - help');
 end;
 
@@ -103,11 +101,11 @@ var
   i: int64 = 0;
 begin
   AssignFile(fi, Path);
-  reset(fi, 1);
+  Reset(fi, 1);
   SetLength(Buf, FileSize(fi));
   repeat
-    BlockRead(fi, buf[i], SizeOf(buf), NumRead);
-    Inc(i, SizeOf(buf));
+    BlockRead(fi, Buf[i], SizeOf(Buf), NumRead);
+    Inc(i, SizeOf(Buf));
   until (NumRead = 0);
   CloseFile(fi);
 end;
@@ -115,11 +113,20 @@ end;
 procedure TMyApplication.WriteFile(AName: String);
 var
   fo: File of Char;
-  i: int64 = 0;
+  count: Integer = 1;
+  is_solid: Boolean;
+  i: Int64 = 0;
 begin
   AssignFile(fo, AName + '.upa');
   Rewrite(fo, 1);
   write(fo, 'U', 'P', 'A');
+  case ParamStr(2) of
+    'Compress':  Write(fo, 'HUFF');
+    'Archive' :  Write(fo, 'NOPE');
+  end;
+  is_solid := false;
+  Write(fo, is_solid);
+  Write(fo, count);
   While i <= Length(Buf) do
   begin
     BlockWrite(fo, Buf[i], SizeOf(Buf));
