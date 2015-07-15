@@ -4,7 +4,7 @@ uses
   {$IFDEF UNIX}{$IFDEF UseCThreads}
   cthreads,
   {$ENDIF}{$ENDIF}
-  Classes, SysUtils, CustApp, crt, UCompress;
+  Classes, SysUtils, CustApp, crt, UArch;
 
 type
   { TMyApplication }
@@ -40,7 +40,7 @@ begin
   begin
     ReadFile(ParamStr(3));
     if ParamStr(2) = 'Compress' then
-      Buf := Compress.Compress(Buf);
+      Buf := Arch.Compress(Buf);
     WriteFile(ParamStr(2));
     Terminate;
     Exit;
@@ -53,7 +53,18 @@ begin
   end;
   if HasOption('e', 'extract') then
   begin
-    Write('data extracted to ... ');
+    ReadFile(ParamStr(3));
+    if (Buf[0] = Ord('U')) and (Buf[1] = Ord('P')) and(Buf[2] = Ord('A')) then
+    begin
+      if (Buf[3] = Ord('H')) and (Buf[4] = Ord('U')) and
+            (Buf[5] = Ord('F')) and (Buf[6] = Ord('F')) then
+               Buf := DeArch.DeCompress(Buf)
+      else
+        begin
+          //удалить первые символы
+          WriteFile(ParamStr(2));
+        end;
+    end;
     Terminate;
     Exit;
   end;
@@ -96,8 +107,7 @@ end;
 procedure TMyApplication.ReadFile(Path: String);
 var
   fi: File;
-  b: Byte;
-  NumRead: Int64;
+  NumRead: Int64 = 0;
   i: int64 = 0;
 begin
   AssignFile(fi, Path);
@@ -113,20 +123,20 @@ end;
 procedure TMyApplication.WriteFile(AName: String);
 var
   fo: File of Char;
-  count: Integer = 1;
   is_solid: Boolean;
+  count: Integer = 1;
   i: Int64 = 0;
 begin
   AssignFile(fo, AName + '.upa');
   Rewrite(fo, 1);
   write(fo, 'U', 'P', 'A');
   case ParamStr(2) of
-    'Compress':  Write(fo, 'HUFF');
-    'Archive' :  Write(fo, 'NOPE');
+    'Compress':  Write(fo, 'H', 'U', 'F', 'F');
+    'Archive' :  Write(fo, 'N', 'O', 'P', 'E');
   end;
   is_solid := false;
-  Write(fo, is_solid);
-  Write(fo, count);
+  Write(fo, 'f', 'a', 'l', 's', 'e');
+  //Write(fo, count);
   While i <= Length(Buf) do
   begin
     BlockWrite(fo, Buf[i], SizeOf(Buf));
@@ -137,7 +147,6 @@ end;
 
 var
   Application: TMyApplication;
-
 begin
   Application := TMyApplication.Create(nil);
   Application.Title := 'Archive Program';
