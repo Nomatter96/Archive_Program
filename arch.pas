@@ -4,7 +4,7 @@ uses
   {$IFDEF UNIX}{$IFDEF UseCThreads}
   cthreads,
   {$ENDIF}{$ENDIF}
-  Classes, SysUtils, CustApp, crt, UCompress;
+  Classes, SysUtils, CustApp, crt, UCompress, UDeCompress;
 
 type
   { TMyApplication }
@@ -16,7 +16,7 @@ type
     destructor Destroy; override;
     procedure WriteHelp; virtual;
     procedure ReadFile(Path: String);
-    procedure WriteFile(Path: String);
+    procedure WriteFile(AName: String);
   private
     Buf: array of Byte;
 end;
@@ -29,6 +29,7 @@ end;
 procedure TMyApplication.DoRun;
 var
   ErrorMsg: String;
+
 begin
   ErrorMsg := CheckOptions('h a e c','help add extract create');
   if ErrorMsg <> '' then
@@ -41,6 +42,8 @@ begin
   if HasOption('c', 'create') then
   begin
     ReadFile(ParamStr(FilePath));
+    Buf := Compress.Compress(Buf);
+    WriteFile(ParamStr(NewFileName));
     Terminate;
     Exit;
   end;
@@ -86,7 +89,7 @@ begin
        + '-Trofimova O.' + LineEnding
        + LineEnding
        + 'Commands:' + LineEnding
-       + '-c [New Archive Name] [Path to file] - create new archive' + LineEnding
+       + '-c [nope or Compress] [New Archive Name] [Path to file] - create new archive' + LineEnding
        + '-a [Archive] [Path to file] - add to archive' + LineEnding
        + '-e [Archive] [Path to extract] - extract files' + LineEnding
        + '-h - help');
@@ -109,13 +112,14 @@ begin
   CloseFile(fi);
 end;
 
-procedure TMyApplication.WriteFile(Path: String);
+procedure TMyApplication.WriteFile(AName: String);
 var
-  fo: File of Byte;
+  fo: File of Char;
   i: int64 = 0;
 begin
-  AssignFile(fo, Path);
+  AssignFile(fo, AName + '.upa');
   Rewrite(fo, 1);
+  write(fo, 'U', 'P', 'A');
   While i <= Length(Buf) do
   begin
     BlockWrite(fo, Buf[i], SizeOf(Buf));
