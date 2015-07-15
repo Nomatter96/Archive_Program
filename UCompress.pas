@@ -31,9 +31,9 @@ type
     procedure sortArray(l, r: longint);
     procedure getFrequency(Arr: array of byte);
     function buildtree(i, j: integer): tree;
-    procedure GetSymb(tr: tree; l: integer; code: string);
-    function findsym(a: byte): byte;
-    procedure MakeNewCodes();
+    procedure GetSymb(tr: tree; l: integer);
+    function findsym(a: byte; Arr: array of symb): byte;
+    procedure MakeNewCodes(var Arr: array of symb);
     function Compress(var InputArray: array of byte): ByteArray;
     procedure SortBySym(l, r: longint);
   end;
@@ -205,37 +205,36 @@ begin
   until (i > Length(FreqTable) - 1) and (j >= Length(node) - 1);
 end;
 
-procedure TCompress.GetSymb(tr: tree; l: integer; code: string);
+procedure TCompress.GetSymb(tr: tree; l: integer);
 begin
   if not tr^.node then
   begin
     SetLength(symbol, Length(symbol) + 1);
     symbol[high(symbol)].Value := tr^.Value;
     symbol[high(symbol)].h := l;
-    symbol[high(symbol)].code := code;
   end
   else
   begin
     if tr^.left <> nil then
-      GetSymb(tr^.left, l + 1, '');
+      GetSymb(tr^.left, l + 1);
     if tr^.right <> nil then
-      GetSymb(tr^.right, l + 1, '');
+      GetSymb(tr^.right, l + 1);
   end;
 end;
 
-function TCompress.findsym(a: byte): byte;
+function TCompress.findsym(a: byte; Arr: array of symb): byte;
 var
   i: integer;
 begin
-  for i := 0 to high(Symbol) do
-    if Symbol[i].Value = a then
+  for i := 0 to high(Arr) do
+    if Arr[i].Value = a then
     begin
       Result := i;
       exit;
     end;
 end;
 
-procedure TCompress.MakeNewCodes();
+procedure TCompress.MakeNewCodes(var Arr: array of symb);
 var
   i, j: integer;
   function Increase(s: string): string;
@@ -253,16 +252,16 @@ var
           s[t] := '0';
     end;
 begin
-  SortArray(0, High(symbol));
-  for i := 1 to symbol[0].h do
-    symbol[0].code := symbol[0].code + '0';
-  for i := 1 to high(symbol) do
-    if symbol[i].h = symbol[i - 1].h then
-      symbol[i].code := Increase(symbol[i - 1].code)
+  SortArray(0, High(Arr));
+  for i := 1 to Arr[0].h do
+    Arr[0].code := Arr[0].code + '0';
+  for i := 1 to high(Arr) do
+    if Arr[i].h = Arr[i - 1].h then
+      Arr[i].code := Increase(Arr[i - 1].code)
     else begin
-      Symbol[i].code := Increase(symbol[i - 1].code);
-      for j:= 1 to (symbol[i].h - symbol[i - 1].h) do
-         symbol[i].code := symbol[i].code + '0';
+      Arr[i].code := Increase(Arr[i - 1].code);
+      for j:= 1 to (Arr[i].h - Arr[i - 1].h) do
+         Arr[i].code := Arr[i].code + '0';
     end;
 end;
 
@@ -273,8 +272,8 @@ var
 begin
   if length(InputArray) = 0 then exit;
   getFrequency(InputArray);
-  GetSymb(buildtree(0, 0), 0, '');
-  MakeNewCodes();
+  GetSymb(buildtree(0, 0), 0);
+  MakeNewCodes(Symbol);
 
   Setlength(Result, length(Result) + 257);
   SortBySym(0, high(Symbol));
@@ -284,7 +283,7 @@ begin
   pos := 7;
   for i := 0 to high(InputArray) do
   begin
-    k := findsym(InputArray[i]);
+    k := findsym(InputArray[i], Symbol);
     curcode := symbol[k].code;
     for j := 1 to length(curcode) do
     begin
