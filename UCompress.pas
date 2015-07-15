@@ -35,6 +35,7 @@ type
     function findsym(a: byte): byte;
     procedure MakeNewCodes();
     function Compress(var InputArray: array of byte): ByteArray;
+    procedure SortBySym(l, r: longint);
   end;
 
 var
@@ -106,6 +107,34 @@ begin
     sortArray(i, r);
   if j > l then
     sortArray(l, j);
+end;
+
+procedure TCompress.SortBySym(l, r: longint);
+var
+  j, i, mid: longint;
+  buf: Symb;
+begin
+  i := l;
+  j := r;
+  mid := symbol[(i + j) div 2].value;
+  repeat
+    while symbol[i].value < mid do
+      Inc(i);
+    while symbol[j].value > mid do
+      Dec(j);
+    if i <= j then
+    begin
+      buf := symbol[i];
+      symbol[i] := symbol[j];
+      symbol[j] := buf;
+      Inc(i);
+      Dec(j);
+    end;
+  until i > j;
+  if i < r then
+    SortBySym(i, r);
+  if j > l then
+    SortBySym(l, j);
 end;
 
 procedure TCompress.getFrequency(Arr: array of byte);
@@ -242,11 +271,16 @@ var
   curcode: string;
   i, j, pos, index: integer;
 begin
+  if length(InputArray) = 0 then exit;
   getFrequency(InputArray);
   GetSymb(buildtree(0, 0), 0, '');
   MakeNewCodes();
-  Setlength(Result, length(Result) + 1);
-  index := 0;
+
+  Setlength(Result, length(Result) + 257);
+  SortBySym(0, high(Symbol));
+  for i:= 0 to 255 do
+    result[i]:=length(symbol[i].code);
+  index := 256;
   pos := 7;
   for i := 0 to high(InputArray) do
   begin
@@ -269,4 +303,4 @@ end;
 initialization
 
   Compress := TCompress.Create();
-end.    
+end.
