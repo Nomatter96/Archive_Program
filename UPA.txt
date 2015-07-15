@@ -1,5 +1,5 @@
 UniPack Archive (UPA) Format Specification
-14.07.2015 (d.m.y)
+15.07.2015 (d.m.y)
 
 ════════════════════════════════════════════════════════════════════════════════
 1. GENERAL INFO
@@ -8,7 +8,7 @@ File extension:            ".upa"
 Max amount of files:       65535
 Filename codepage:         Windows-1251
 Folder hierarchy support:  No
-Solid archives support:    Yes
+Solid archives support:    No
 Compression methods:       One for whole archive
 Endianness:                little-endian (Intel)
 
@@ -53,3 +53,45 @@ If archive is solid, the whole packed data stream represents all files,
 compressed as one.
 Otherwise, the packed data stream consists of packed files data, placed in the
 same order as in FAT.
+
+════════════════════════════════════════════════════════════════════════════════
+
+
+UniPack method ID: NOPE (0x45504F4E)
+════════════════════════════════════════════════════════════════════════════════
+1. Compression technique
+
+it does NOT compress data in any way. It just copies input data to output
+stream.
+It could be useful for testing purposes or when you do not need any compression.
+
+════════════════════════════════════════════════════════════════════════════════
+2. Output data structure
+
+pkstream  char[*]
+  Data stream without any compression.
+  Stream length coincides with input data size.
+
+
+════════════════════════════════════════════════════════════════════════════════  
+ 
+  UniPack method ID: HUFF (0x46465548)
+
+════════════════════════════════════════════════════════════════════════════════
+1. Compression technique
+
+it uses "canonical Huffman coding" algorithm to compress data.
+Output data contains compressed data stream itself and some auxiliary info.
+
+════════════════════════════════════════════════════════════════════════════════
+2. Output data structure
+
+table     unsigned char[256]
+  Codes lengths table. Every byte value represents length of code, in bits, for
+  ASCII character with corresponding index.
+
+pkstream  char[*]
+  Compressed data stream. Could contain unused zero bits at the end to round up
+  size of stream in bytes to integer number.
+  Stream length must be preserved aside from stream itself after compression and
+  passed to the decompress function on unpacking.
