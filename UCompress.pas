@@ -1,4 +1,4 @@
-unit UCompress;
+unit UArch;
 
 {$mode objfpc}{$H+}
 
@@ -25,7 +25,7 @@ type
     code: string;
   end;
 
-  TCompress = class
+  TArch = class
   public
     procedure sort(l, r: longint);
     procedure sortArray(l, r: longint);
@@ -39,7 +39,7 @@ type
   end;
 
 var
-  Compress: TCompress;
+  Arch: TArch;
   k, m: integer;
   tr: Tree;
   symbol: array of Symb;
@@ -50,7 +50,7 @@ var
 
 implementation
 
-procedure TCompress.sort(l, r: longint);
+procedure TArch.sort(l, r: longint);
 var
   j, i, mid, samp: longint;
   buf: byte;
@@ -81,7 +81,7 @@ begin
     sort(l, j);
 end;
 
-procedure TCompress.sortArray(l, r: longint);
+procedure TArch.sortArray(l, r: longint);
 var
   j, i, mid: longint;
   buf: Symb;
@@ -109,7 +109,7 @@ begin
     sortArray(l, j);
 end;
 
-procedure TCompress.SortBySym(l, r: longint);
+procedure TArch.SortBySym(l, r: longint);
 var
   j, i, mid: longint;
   buf: Symb;
@@ -137,7 +137,7 @@ begin
     SortBySym(l, j);
 end;
 
-procedure TCompress.getFrequency(Arr: array of byte);
+procedure TArch.getFrequency(Arr: array of byte);
 var
   a: byte;
   i: integer;
@@ -159,7 +159,7 @@ begin
   Sort(0, High(FreqTable));
 end;
 
-function TCompress.buildtree(i, j: integer): tree;
+function TArch.buildtree(i, j: integer): tree;
 var
   l, r: tree;
   node: array of Tree;
@@ -205,7 +205,7 @@ begin
   until (i > Length(FreqTable) - 1) and (j >= Length(node) - 1);
 end;
 
-procedure TCompress.GetSymb(tr: tree; l: integer);
+procedure TArch.GetSymb(tr: tree; l: integer);
 begin
   if not tr^.node then
   begin
@@ -222,7 +222,7 @@ begin
   end;
 end;
 
-function TCompress.findsym(a: byte; Arr: array of symb): byte;
+function TArch.findsym(a: byte; Arr: array of symb): byte;
 var
   i: integer;
 begin
@@ -234,7 +234,7 @@ begin
     end;
 end;
 
-procedure TCompress.MakeNewCodes(var Arr: array of symb);
+procedure TArch.MakeNewCodes(var Arr: array of symb);
 var
   i, j: integer;
   function Increase(s: string): string;
@@ -265,7 +265,7 @@ begin
     end;
 end;
 
-function TCompress.Compress(var InputArray: array of byte): ByteArray;
+function TArch.Compress(var InputArray: array of byte): ByteArray;
 var
   curcode: string;
   i, j, pos, index: integer;
@@ -301,5 +301,5 @@ end;
 
 initialization
 
-  Compress := TCompress.Create();
+  Arch := TArch.Create();
 end.
