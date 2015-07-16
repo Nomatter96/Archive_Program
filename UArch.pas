@@ -116,17 +116,17 @@ var
 begin
   i := l;
   j := r;
-  mid := symbol[(i + j) div 2].value;
+  mid := Alph[(i + j) div 2].Value;
   repeat
-    while symbol[i].value < mid do
+    while Alph[i].Value < mid do
       Inc(i);
-    while symbol[j].value > mid do
+    while Alph[j].Value > mid do
       Dec(j);
     if i <= j then
     begin
-      buf := symbol[i];
-      symbol[i] := symbol[j];
-      symbol[j] := buf;
+      buf := Alph[i];
+      Alph[i] := Alph[j];
+      Alph[j] := buf;
       Inc(i);
       Dec(j);
     end;
@@ -144,8 +144,8 @@ var
 begin
   Setlength(FreqTable, 256);
   Setlength(Count, 256);
-  for a:= 0 to high(FreqTable) do
-    FreqTable[a]:= a;
+  for a := 0 to high(FreqTable) do
+    FreqTable[a] := a;
   for k := 0 to high(Arr) do
   begin
     a := Arr[k];
@@ -237,20 +237,22 @@ end;
 procedure TArch.MakeNewCodes(var Arr: array of symb);
 var
   i, j: integer;
+
   function Increase(s: string): string;
-    var
-      t: integer;
-    begin
-      for t := length(s) downto 1 do
-        if s[t] = '0' then
-        begin
-          s[t] := '1';
-          Result := s;
-          exit;
-        end
-        else
-          s[t] := '0';
-    end;
+  var
+    t: integer;
+  begin
+    for t := length(s) downto 1 do
+      if s[t] = '0' then
+      begin
+        s[t] := '1';
+        Result := s;
+        exit;
+      end
+      else
+        s[t] := '0';
+  end;
+
 begin
   SortArray(0, High(Arr));
   for i := 1 to Arr[0].h do
@@ -258,10 +260,11 @@ begin
   for i := 1 to high(Arr) do
     if Arr[i].h = Arr[i - 1].h then
       Arr[i].code := Increase(Arr[i - 1].code)
-    else begin
+    else
+    begin
       Arr[i].code := Increase(Arr[i - 1].code);
-      for j:= 1 to (Arr[i].h - Arr[i - 1].h) do
-         Arr[i].code := Arr[i].code + '0';
+      for j := 1 to (Arr[i].h - Arr[i - 1].h) do
+        Arr[i].code := Arr[i].code + '0';
     end;
 end;
 
@@ -270,35 +273,37 @@ var
   curcode: string;
   i, j, pos, index: integer;
 begin
-  if length(InputArray) = 0 then exit;
+  if length(InputArray) = 0 then
+    exit;
   getFrequency(InputArray);
   GetSymb(buildtree(0, 0), 0);
   MakeNewCodes(Symbol);
 
   Setlength(Result, 257);
   Setlength(Alph, 256);
-  for i:= 0 to 255 do
-    Alph[i]:=Symbol[i];
+  for i := 0 to 255 do
+    Alph[i] := Symbol[i];
   SortBySym(0, high(Alph));
-  for i:= 0 to 255 do
-    result[i]:=length(Alph[i].code);
-  index :=256;
-  pos := 7;
+  for i := 0 to 255 do
+    Result[i] := length(Alph[i].code);
+  index := 256;
+  pos := 0;
 
   for i := 0 to high(InputArray) do
   begin
     curcode := findsym(InputArray[i], Symbol);
     for j := 1 to length(curcode) do
     begin
-      if pos = 0 then begin
-        pos := 7;
+      if pos = 7 then
+      begin
+        pos := 0;
         Inc(index);
         Setlength(Result, length(Result) + 1);
-        result[index]:=0;
+        Result[index] := 0;
       end;
       if curcode[j] = '1' then
         Result[index] := Result[index] or (1 shl pos);
-      dec(pos);
+      Inc(pos);
     end;
   end;
 end;
@@ -307,4 +312,3 @@ initialization
 
   Arch := TArch.Create();
 end.
-
