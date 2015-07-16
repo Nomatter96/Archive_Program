@@ -4,7 +4,7 @@ uses
   {$IFDEF UNIX}{$IFDEF UseCThreads}
   cthreads,
   {$ENDIF}{$ENDIF}
-  Classes, SysUtils, CustApp, crt, UArch;
+  Classes, SysUtils, CustApp, crt, UArch, UDeArch;
 
 type
   { TMyApplication }
@@ -61,9 +61,8 @@ begin
     if IncorrectFile then
       exit;
     if Compress then
-      exit
-    else
-      WriteFile(PAramStr(3));
+      Buf := DeArch.DeCompress(Buf);
+    WriteFile(ParamStr(3));
     Terminate;
     Exit;
   end;
@@ -73,10 +72,6 @@ begin
     Terminate;
     Exit;
   end;
-  //ReadFile('01.txt');
-  //Write
-  //ReadArch('01.upa');
-  //WriteFile('01.txt');
   WriteHelp;
   Terminate;
 end;
@@ -127,8 +122,7 @@ end;
 procedure TMyApplication.WriteArch(AName: String);
 var
   fo: File of Char;
-  is_solid: Boolean;
-  count: Integer = 1;
+  NumWrite: Int64 = 0;
   i: Int64 = 0;
 begin
   AssignFile(fo, AName + '.upa');
@@ -140,7 +134,7 @@ begin
   end;
   While i < Length(Buf) do
   begin
-    BlockWrite(fo, Buf[i], SizeOf(Buf));
+    BlockWrite(fo, Buf[i], SizeOf(Buf[i]), NumWrite);
     inc(i, SizeOf(Buf));
   end;
   CloseFile(fo);
@@ -152,6 +146,7 @@ var
   sign: array[1..3] of Char;
   TypeCompress: array[1..4] of Char;
   i: Int64 = 0;
+  NumRead: Int64;
 
 begin
   AssignFile(fi, Path);
@@ -163,14 +158,14 @@ begin
     exit;
   end;
   BlockRead(fi, TypeCompress, 4);
-  if TypeCompress = 'H' then
+  if TypeCompress = 'HUFF' then
     Compress := True
   else
     Compress := False;
   SetLength(Buf, FileSize(fi) - 7);
   While i < Length(Buf) - 1 do
   begin
-    BlockRead(fi, Buf[i], SizeOf(Buf));
+    BlockRead(fi, Buf[i], SizeOf(Buf), NumRead);
     inc(i, SizeOf(Buf));
   end;
   close(fi);
