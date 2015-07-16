@@ -5,7 +5,7 @@ unit UDeArch;
 interface
 
 uses
-  Classes, SysUtils, UCompress;
+  Classes, SysUtils, UArch;
 
 type
 
@@ -15,8 +15,9 @@ type
   public
     procedure BuildTree(var t: Tree; Symbol: Symb; i: Integer);
     function DeCompress(var InputArray: array of Byte): ByteArray;
-    procedure SortLength(var InputArray: array of Byte; l, r: Integer);
+    procedure SortLength(var InputArray: array of Symb; l, r: Integer);
     procedure ConvertToSymbol(InputArray: array of Byte);
+    function SearchLeaf(t: Tree ;AByte: Byte; i: Integer): Byte;
   private
     Symbols: array of Symb;
     t: Tree;
@@ -49,16 +50,21 @@ var
   i: Integer;
 begin
   ConvertToSymbol(InputArray);
-  SortLength(0, High(Symbols));
+  SortLength(Symbols,0, High(Symbols));
   Compress.MakeNewCodes(Symbols);
   for i := 0 to High(Symbols) do
     BuildTree(t, Symbols[i], 0);
-
+  SetLength(result, Length(InputArray) - 256);
+  for i := 256 to High(InputArray) do
+  begin
+    result[i - 256] := SearchLeaf(t, InputArray[i], 0);
+  end;
 end;
 
-procedure TDeArch.SortLength(l, r: Integer);
+procedure TDeArch.SortLength(var InputArray: array of Symb; l, r: Integer);
 var
-  i, j: Integer;
+  i, j, mid: Integer;
+  buf: symb;
 begin
   i := l;
   j := r;
@@ -78,12 +84,14 @@ begin
     end;
   until i > j;
   if i < r then
-    SortLength(i, r);
+    SortLength(InputArray,i, r);
   if j > l then
-    SortLength(l, j);
+    SortLength(InputArray,l, j);
 end;
 
 procedure TDeArch.ConvertToSymbol(InputArray: array of Byte);
+var
+  i: Integer;
 begin
   SetLength(Symbols, 256);
   for i := 0 to High(Symbols) do
@@ -91,6 +99,19 @@ begin
     Symbols[i].h := InputArray[i];
     Symbols[i].Value := i;
   end;
+end;
+
+function TDeArch.SearchLeaf(t: Tree; AByte: Byte; i: Integer): Byte;
+begin
+  if i > SizeOf(Byte) - 1 then
+  begin
+    result := t^.Value;
+    exit;
+  end;
+  if (AByte and (1 shl i)) <> 0 then
+    result := SearchLeaf(t^.left, AByte, i + 1)
+  else
+    result := SearchLeaf(t^.right, AByte, i + 1);
 end;
 
 end.
