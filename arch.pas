@@ -16,10 +16,14 @@ type
     destructor Destroy; override;
     procedure WriteHelp; virtual;
     procedure ReadFile(Path: String);
-    procedure WriteFile(AName: String);
+    procedure WriteArch(AName: String);
+    procedure ReadArch(Path: String);
+    procedure WriteFile(Path: String);
   private
     Buf: array of Byte;
-end;
+    IncorrectFile: Boolean;
+    Compress: Boolean;
+  end;
 
 { TMyApplication }
 
@@ -38,10 +42,10 @@ begin
 
   if HasOption('c', 'create') then
   begin
-    ReadFile(ParamStr(3));
+    ReadFile(ParamStr(4));
     if ParamStr(2) = 'Compress' then
       Buf := Arch.Compress(Buf);
-    WriteFile(ParamStr(2));
+    WriteArch(ParamStr(3));
     Terminate;
     Exit;
   end;
@@ -53,18 +57,13 @@ begin
   end;
   if HasOption('e', 'extract') then
   begin
-    ReadFile(ParamStr(3));
-    if (Buf[0] = Ord('U')) and (Buf[1] = Ord('P')) and(Buf[2] = Ord('A')) then
-    begin
-      if (Buf[3] = Ord('H')) and (Buf[4] = Ord('U')) and
-            (Buf[5] = Ord('F')) and (Buf[6] = Ord('F')) then
-               Buf := DeArch.DeCompress(Buf)
-      else
-        begin
-          //удалить первые символы
-          WriteFile(ParamStr(2));
-        end;
-    end;
+    ReadArch(ParamStr(2));
+    if IncorrectFile then
+      exit;
+    if Compress then
+      exit
+    else
+      WriteFile(PAramStr(3));
     Terminate;
     Exit;
   end;
@@ -74,6 +73,10 @@ begin
     Terminate;
     Exit;
   end;
+  //ReadFile('Image.jpg');
+  //WriteArch('output');
+  //ReadArch('output.upa');
+  //WriteFile('output.txt');
   WriteHelp;
   Terminate;
 end;
@@ -98,7 +101,7 @@ begin
        + '-Trofimova O.' + LineEnding
        + LineEnding
        + 'Commands:' + LineEnding
-       + '-c [Archive\Compress] [New Archive Name] [Path to file] - create new archive' + LineEnding
+       + '-c [Arch\Comp] [New Archive Name] [Path to file] - create new archive' + LineEnding
        + '-a [Path to archive] [Path to file] - add to archive' + LineEnding
        + '-e [Path to archive] [Path to extract] - extract files' + LineEnding
        + '-h - help');
@@ -120,7 +123,7 @@ begin
   CloseFile(fi);
 end;
 
-procedure TMyApplication.WriteFile(AName: String);
+procedure TMyApplication.WriteArch(AName: String);
 var
   fo: File of Char;
   is_solid: Boolean;
@@ -131,18 +134,60 @@ begin
   Rewrite(fo, 1);
   write(fo, 'U', 'P', 'A');
   case ParamStr(2) of
-    'Compress':  Write(fo, 'H', 'U', 'F', 'F');
-    'Archive' :  Write(fo, 'N', 'O', 'P', 'E');
+    'Comp':  Write(fo, 'H', 'U', 'F', 'F');
+    'Arch' :  Write(fo, 'N', 'O', 'P', 'E');
   end;
-  is_solid := false;
-  Write(fo, 'f', 'a', 'l', 's', 'e');
-  //Write(fo, count);
   While i <= Length(Buf) do
   begin
     BlockWrite(fo, Buf[i], SizeOf(Buf));
     inc(i, SizeOf(Buf));
   end;
   CloseFile(fo);
+end;
+
+procedure TMyApplication.ReadArch(Path: String);
+var
+  fi: File of Char;
+  sign: array[1..3] of Char;
+  TypeCompress: array[1..4] of Char;
+  i: Int64 = 0;
+
+begin
+  AssignFile(fi, Path);
+  Reset(fi, 1);
+  BlockRead(fi, sign, 3);
+  if (sign[1] <> 'U') or (sign[2] <> 'P') or (sign[3] <> 'A') then
+  begin
+    Write('Incorrect File');
+    exit;
+  end;
+  BlockRead(fi, TypeCompress, 4);
+  if TypeCompress = 'H' then
+    Compress := True
+  else
+    Compress := False;
+  SetLength(Buf, FileSize(fi) - 7);
+  While i <= Length(Buf) - 1 do
+  begin
+    BlockRead(fi, Buf[i], SizeOf(Buf));
+    inc(i, SizeOf(Buf));
+  end;
+  close(fi);
+end;
+
+procedure TMyApplication.WriteFile(Path: String);
+var
+  fo: File of Char;
+  i: Int64 = 0;
+begin
+  AssignFile(fo, Path);
+  Rewrite(fo);
+  While i <= Length(Buf) do
+  begin
+    BlockWrite(fo, Buf[i], SizeOf(Buf));
+    inc(i, SizeOf(Buf));
+  end;
+  Close(fo);
 end;
 
 var
