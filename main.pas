@@ -43,7 +43,7 @@ begin
   if HasOption('c', 'create') then
   begin
     ReadFile(ParamStr(4));
-    if ParamStr(2) = 'Compress' then
+    if ParamStr(2) = 'comp' then
       Buf := Arch.Compress(Buf);
     WriteArch(ParamStr(3));
     Terminate;
@@ -73,10 +73,10 @@ begin
     Terminate;
     Exit;
   end;
-  //ReadFile('Image.jpg');
-  //WriteArch('output');
-  //ReadArch('output.upa');
-  //WriteFile('output.txt');
+  //ReadFile('01.txt');
+  //Write
+  //ReadArch('01.upa');
+  //WriteFile('01.txt');
   WriteHelp;
   Terminate;
 end;
@@ -101,7 +101,7 @@ begin
        + '-Trofimova O.' + LineEnding
        + LineEnding
        + 'Commands:' + LineEnding
-       + '-c [Arch\Comp] [New Archive Name] [Path to file] - create new archive' + LineEnding
+       + '-c [arch\comp] [New Archive Name] [Path to file] - create new archive' + LineEnding
        + '-a [Path to archive] [Path to file] - add to archive' + LineEnding
        + '-e [Path to archive] [Path to extract] - extract files' + LineEnding
        + '-h - help');
@@ -116,10 +116,11 @@ begin
   AssignFile(fi, Path);
   Reset(fi, 1);
   SetLength(Buf, FileSize(fi));
-  repeat
+  While i < Length(Buf) do
+  begin
     BlockRead(fi, Buf[i], SizeOf(Buf), NumRead);
     Inc(i, SizeOf(Buf));
-  until (NumRead = 0);
+  end;
   CloseFile(fi);
 end;
 
@@ -134,10 +135,10 @@ begin
   Rewrite(fo, 1);
   write(fo, 'U', 'P', 'A');
   case ParamStr(2) of
-    'Comp':  Write(fo, 'H', 'U', 'F', 'F');
-    'Arch' :  Write(fo, 'N', 'O', 'P', 'E');
+    'comp':  Write(fo, 'H', 'U', 'F', 'F');
+    'arch' :  Write(fo, 'N', 'O', 'P', 'E');
   end;
-  While i <= Length(Buf) do
+  While i < Length(Buf) do
   begin
     BlockWrite(fo, Buf[i], SizeOf(Buf));
     inc(i, SizeOf(Buf));
@@ -167,7 +168,7 @@ begin
   else
     Compress := False;
   SetLength(Buf, FileSize(fi) - 7);
-  While i <= Length(Buf) - 1 do
+  While i < Length(Buf) - 1 do
   begin
     BlockRead(fi, Buf[i], SizeOf(Buf));
     inc(i, SizeOf(Buf));
@@ -182,7 +183,7 @@ var
 begin
   AssignFile(fo, Path);
   Rewrite(fo);
-  While i <= Length(Buf) do
+  While i < Length(Buf) do
   begin
     BlockWrite(fo, Buf[i], SizeOf(Buf));
     inc(i, SizeOf(Buf));
