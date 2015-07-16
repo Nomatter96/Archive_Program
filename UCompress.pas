@@ -32,7 +32,7 @@ type
     procedure getFrequency(Arr: array of byte);
     function buildtree(i, j: integer): tree;
     procedure GetSymb(tr: tree; l: integer);
-    function findsym(a: byte; Arr: array of symb): byte;
+    function findsym(a: byte; Arr: array of symb): string;
     procedure MakeNewCodes(var Arr: array of symb);
     function Compress(var InputArray: array of byte): ByteArray;
     procedure SortBySym(l, r: longint);
@@ -42,7 +42,7 @@ var
   Arch: TArch;
   k, m: integer;
   tr: Tree;
-  symbol: array of Symb;
+  symbol, Alph: array of Symb;
   FreqTable: array of byte;
   Count: array of integer;
   s: string;
@@ -222,14 +222,14 @@ begin
   end;
 end;
 
-function TArch.findsym(a: byte; Arr: array of symb): byte;
+function TArch.findsym(a: byte; Arr: array of symb): string;
 var
   i: integer;
 begin
   for i := 0 to high(Arr) do
     if Arr[i].Value = a then
     begin
-      Result := i;
+      Result := Arr[i].code;
       exit;
     end;
 end;
@@ -275,22 +275,26 @@ begin
   GetSymb(buildtree(0, 0), 0);
   MakeNewCodes(Symbol);
 
-  Setlength(Result, length(Result) + 257);
-  SortBySym(0, high(Symbol));
+  Setlength(Result, 257);
+  Setlength(Alph, 256);
   for i:= 0 to 255 do
-    result[i]:=length(symbol[i].code);
-  index := 256;
+    Alph[i]:=Symbol[i];
+  SortBySym(0, high(Alph));
+  for i:= 0 to 255 do
+    result[i]:=length(Alph[i].code);
+  index :=256;
   pos := 7;
+
   for i := 0 to high(InputArray) do
   begin
-    k := findsym(InputArray[i], Symbol);
-    curcode := symbol[k].code;
+    curcode := findsym(InputArray[i], Symbol);
     for j := 1 to length(curcode) do
     begin
       if pos = 0 then begin
         pos := 7;
         Inc(index);
         Setlength(Result, length(Result) + 1);
+        result[index]:=0;
       end;
       if curcode[j] = '1' then
         Result[index] := Result[index] or (1 shl pos);
@@ -303,3 +307,4 @@ initialization
 
   Arch := TArch.Create();
 end.
+
