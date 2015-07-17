@@ -252,9 +252,7 @@ var
       else
         s[t] := '0';
   end;
-
 begin
-  SortArray(0, High(Arr));
   for i := 1 to Arr[0].h do
     Arr[0].code := Arr[0].code + '0';
   for i := 1 to high(Arr) do
@@ -277,8 +275,8 @@ begin
     exit;
   getFrequency(InputArray);
   GetSymb(buildtree(0, 0), 0);
+  SortArray(0, High(Symbol));
   MakeNewCodes(Symbol);
-
   Setlength(Result, 257);
   Setlength(Alph, 256);
   for i := 0 to 255 do
@@ -299,7 +297,6 @@ begin
         pos := 0;
         Inc(index);
         Setlength(Result, length(Result) + 1);
-        Result[index] := 0;
       end;
       if curcode[j] = '1' then
         Result[index] := Result[index] or (1 shl pos);
