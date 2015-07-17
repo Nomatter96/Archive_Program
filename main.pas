@@ -23,6 +23,8 @@ type
     Buf: array of Byte;
     IncorrectFile: Boolean;
     Compress: Boolean;
+    OrigSize: Int64;
+    FileName: string;
   end;
 
 { TMyApplication }
@@ -111,6 +113,8 @@ begin
   AssignFile(fi, Path);
   Reset(fi, 1);
   SetLength(Buf, FileSize(fi));
+  OrigSize := Length(Buf);
+  FileName := Path;
   While i < Length(Buf) do
   begin
     BlockRead(fi, Buf[i], SizeOf(Buf), NumRead);
@@ -124,17 +128,30 @@ var
   fo: File of Char;
   NumWrite: Int64 = 0;
   i: Int64 = 0;
+  count: Word = 1;
+  is_solid: boolean = false;
+  fn_len: Byte;
+  packSize: Int64;
 begin
   AssignFile(fo, AName + '.upa');
   Rewrite(fo, 1);
   write(fo, 'U', 'P', 'A');
   case ParamStr(2) of
     'comp':  Write(fo, 'H', 'U', 'F', 'F');
-    'arch' :  Write(fo, 'N', 'O', 'P', 'E');
+    'arch':  Write(fo, 'N', 'O', 'P', 'E');
   end;
+  BlockWrite(fo, is_solid, SizeOf(is_solid));
+  BlockWrite(fo, count, SizeOf(count));
+  fn_len := Length(FileName) - 1;
+  BlockWrite(fo, fn_len, SizeOf(fn_len));
+  BlockWrite(fo, FileName[1], Length(FileName));
+  packSize := Length(Buf);
+  BlockWrite(fo, packSize, SizeOf(packSize));
+  BlockWrite(fo, OrigSize, SizeOf(OrigSize));
+
   While i < Length(Buf) do
   begin
-    BlockWrite(fo, Buf[i], SizeOf(Buf[i]), NumWrite);
+    BlockWrite(fo, Buf[i], SizeOf(Buf), NumWrite);
     inc(i, SizeOf(Buf));
   end;
   CloseFile(fo);
