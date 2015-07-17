@@ -327,7 +327,6 @@ begin
   SortArray(0, High(Symbol));
   f:=0;
   l:=0;
-
   for i:=1 to high(Symbol) do  begin
      if Symbol[i].h = Symbol[i-1].h then
        l:=i else
