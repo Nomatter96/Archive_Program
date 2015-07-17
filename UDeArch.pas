@@ -11,13 +11,6 @@ type
 
   TreeF = ^TTree;
 
-  TTree = record
-    Value: byte;
-    left: TreeF;
-    right: TreeF;
-    status: ShortInt; // -1 - ещё не создан, 0 узел, 1 лист
-  end;
-
   { TDeArch }
 
   TDeArch = class
@@ -27,6 +20,7 @@ type
     procedure SortLength(var InputArray: array of Symb; l, r: integer);
     procedure ConvertToSymbol(InputArray: array of byte);
     function SearchLeaf(t: TreeF; AByte: byte; i: integer): byte;
+    procedure SortBySym(l, r: longint);
   private
     Symbols: array of Symb;
     t: TreeF;
@@ -45,13 +39,13 @@ begin
     t^.left := nil;
     t^.right := nil;
   end;
-  if i = Length(Symbol.code) + 1 then
+  if (i = Length(Symbol.code) + 1) then
   begin
     t^.Value := Symbol.Value;
+    t^.node := True;
   end
   else
   begin
-    write(Symbol.code[2]);
     if Symbol.code[i] = '0' then
       BuildTree(t^.left, Symbol, i + 1)
     else
@@ -59,19 +53,79 @@ begin
   end;
 end;
 
+procedure TDeArch.SortBySym(l, r: longint);
+var
+  j, i, mid: longint;
+  buf: Symb;
+begin
+  i := l;
+  j := r;
+  mid := symbols[(i + j) div 2].Value;
+  repeat
+    while symbols[i].Value < mid do
+      Inc(i);
+    while symbols[j].Value> mid do
+      Dec(j);
+    if i <= j then
+    begin
+      buf := symbols[i];
+      symbols[i] := symbols[j];
+      symbols[j] := buf;
+      Inc(i);
+      Dec(j);
+    end;
+  until i > j;
+  if i < r then
+    SortBySym(i, r);
+  if j > l then
+    SortBySym(l, j);
+end;
+
 function TDeArch.DeCompress(var InputArray: array of byte): ByteArray;
 var
-  i: integer;
+  i, j, f, l, k: Int64;
+  tr: TreeF;
 begin
   ConvertToSymbol(InputArray);
   SortLength(Symbols, 0, High(Symbols));
+  f:=0;
+  l:=0;
+
+  for i:=1 to high(Symbols) do  begin
+     if Symbols[i].h = Symbols[i-1].h then
+       l:=i else
+       if l <> f then begin
+         SortBySym(f, l);
+         l:=i;
+         f:=i;
+       end;
+  end;
+  if l <> f then
+    SortBySym(f, l);
+
   Arch.MakeNewCodes(Symbols);
+
   for i := 0 to High(Symbols) do
     BuildTree(t, Symbols[i], 1);
-  SetLength(Result, Length(InputArray) - 256);
-  for i := 256 to High(InputArray) do
+
+  i := 255;
+
+  tr := t;
+  For i := 256 to high(InputArray) do
   begin
-    Result[i - 256] := SearchLeaf(t, InputArray[i], 0);
+    for j := 0 to 7 do
+      begin
+        if (InputArray[i] and (1 shl j)) <> 0 then
+          tr := tr^.right
+        else
+          tr := tr^.left;
+        if (tr^.right = nil) and (tr^.left = nil) then
+        begin
+          SetLength(Result, Length(Result) +  1);
+          Result[high(Result)] := tr^.Value;
+          tr := t;
+        end;
+      end;
   end;
 end;
 
@@ -124,17 +178,20 @@ procedure TDeArch.ConvertToSymbol(InputArray: array of byte);
 var
   i: integer;
 begin
-  SetLength(Symbols, 256);
-  for i := 0 to High(Symbols) do
+  for i := 0 to 255 do
   begin
-    Symbols[i].h := InputArray[i];
-    Symbols[i].Value := i;
+    if InputArray[i] <> 0 then
+    begin
+      SetLength(Symbols, Length(Symbols) + 1);
+      Symbols[High(Symbols)].h := InputArray[i];
+      Symbols[High(Symbols)].Value := i;
+    end;
   end;
 end;
 
-function TDeArch.SearchLeaf(t: TreeF; AByte: byte; i: integer): byte;
+function TDeArch.SearchLeaf(t: TreeF; AByte: byte; i: integer): Byte;
 begin
-  if i > SizeOf(Byte) - 1 then
+  if t^.node then
   begin
     Result := t^.Value;
     exit;
