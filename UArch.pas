@@ -35,6 +35,8 @@ type
     function findsym(a: byte; Arr: array of symb): string;
     procedure MakeNewCodes(var Arr: array of symb);
     function Compress(var InputArray: array of byte): ByteArray;
+    procedure SortBySym(l, r: longint);
+    procedure SortByFreqSym(l, r: longint);
   end;
 
 var
@@ -108,11 +110,68 @@ begin
     sortArray(l, j);
 end;
 
+procedure TArch.SortBySym(l, r: longint);
+var
+  j, i, mid: longint;
+  buf: Symb;
+begin
+  i := l;
+  j := r;
+  mid := symbol[(i + j) div 2].Value;
+  repeat
+    while symbol[i].Value < mid do
+      Inc(i);
+    while symbol[j].Value> mid do
+      Dec(j);
+    if i <= j then
+    begin
+      buf := symbol[i];
+      symbol[i] := symbol[j];
+      symbol[j] := buf;
+      Inc(i);
+      Dec(j);
+    end;
+  until i > j;
+  if i < r then
+    SortBySym(i, r);
+  if j > l then
+    SortBySym(l, j);
+end;
+
+procedure TArch.SortByFreqSym(l, r: longint);
+var
+  j, i, mid: longint;
+  buf: byte;
+begin
+  i := l;
+  j := r;
+  mid := FreqTable[(i + j) div 2];
+  repeat
+    while FreqTable[i] < mid do
+      Inc(i);
+    while FreqTable[j]> mid do
+      Dec(j);
+    if i <= j then
+    begin
+      buf := FreqTable[i];
+      FreqTable[i] := FreqTable[j];
+      FreqTable[j] := buf;
+      Inc(i);
+      Dec(j);
+    end;
+  until i > j;
+  if i < r then
+    SortByFreqSym(i, r);
+  if j > l then
+    SortByFreqSym(l, j);
+end;
+
 procedure TArch.getFrequency(Arr: array of byte);
 var
   a: byte;
   i: integer;
   found: boolean;
+  l, f: integer;
 begin
   for k := 0 to high(Arr) do
   begin
@@ -132,7 +191,20 @@ begin
       Inc(Count[high(Count)]);
     end;
   end;
+  l:=0;
+  f:=0;
   Sort(0, High(FreqTable));
+  for i:=1 to high(FreqTable) do  begin
+     if Count[i] = Count[i-1] then
+       l:=i else
+       if l <> f then begin
+         SortByFreqSym(f, l);
+         l:=i;
+         f:=i;
+       end;
+  end;
+  if l <> f then
+    SortByFreqSym(f, l);
 end;
 
 function TArch.buildtree(i, j: integer): tree;
@@ -245,7 +317,7 @@ end;
 function TArch.Compress(var InputArray: array of byte): ByteArray;
 var
   curcode: string;
-  i, j, pos,k, index: integer;
+  i, j, pos, l, f, k, index: integer;
   NilSym: symb;
 begin
   if length(InputArray) = 0 then
@@ -253,23 +325,33 @@ begin
   getFrequency(InputArray);
   GetSymb(buildtree(0, 0), 0);
   SortArray(0, High(Symbol));
+  f:=0;
+  l:=0;
+
+  for i:=1 to high(Symbol) do  begin
+     if Symbol[i].h = Symbol[i-1].h then
+       l:=i else
+       if l <> f then begin
+         SortBySym(f, l);
+         l:=i;
+         f:=i;
+       end;
+  end;
+  if l <> f then
+    SortBySym(f, l);
   MakeNewCodes(Symbol);
   Setlength(Result, 257);
-  Setlength(Alph, 256);
   NilSym.h:=0;
   for i := 0 to 255 do
     for k:= 0 to high(Symbol) do
       if Symbol[k].Value = i then begin
-        Alph[i]:=Symbol[k];
+        Result[i] :=Symbol[k].h;
         break;
       end else
-    Alph[i] := NilSym;
-
-  for i := 0 to 255 do
-    Result[i] := Alph[i].h;
-
+    Result[i]  := 0;
   index := 256;
   pos := 0;
+  Result[index]:=0;
   for i := 0 to high(InputArray) do begin
     curcode := findsym(InputArray[i], Symbol);
     for j := 1 to length(curcode) do begin
@@ -277,9 +359,10 @@ begin
         pos := 0;
         Inc(index);
         Setlength(Result, length(Result) + 1);
+        Result[index]:=0;
       end;
       if curcode[j] = '1' then
-        Result[index] := Result[index] or (1 shl pos);
+        Result[index] := Result[index] xor (1 shl pos);
       Inc(pos);
     end;
   end;
