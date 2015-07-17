@@ -264,17 +264,16 @@ begin
         break;
       end else
     Alph[i] := NilSym;
+
   for i := 0 to 255 do
     Result[i] := Alph[i].h;
+
   index := 256;
- for i:= 0 to 255 do
-   write(Alph[i].h);
- readln;
   pos := 0;
   for i := 0 to high(InputArray) do begin
     curcode := findsym(InputArray[i], Symbol);
     for j := 1 to length(curcode) do begin
-      if pos = 7 then begin
+      if pos = 8 then begin
         pos := 0;
         Inc(index);
         Setlength(Result, length(Result) + 1);
