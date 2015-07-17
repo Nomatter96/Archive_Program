@@ -25,6 +25,9 @@ type
     Compress: Boolean;
     OrigSize: Int64;
     FileName: string;
+    is_solid: boolean;
+    fn_len: Byte;
+    packSize: Int64;
   end;
 
 { TMyApplication }
@@ -34,7 +37,7 @@ var
   ErrorMsg: String;
 
 begin
-  ErrorMsg := CheckOptions('c a e h','create add extract help');
+  ErrorMsg := CheckOptions('c a e h', 'create add extract help');
   if ErrorMsg <> '' then
   begin
     ShowException(Exception.Create(ErrorMsg));
@@ -107,7 +110,6 @@ end;
 procedure TMyApplication.ReadFile(Path: String);
 var
   fi: File;
-  NumRead: Int64 = 0;
   i: int64 = 0;
 begin
   AssignFile(fi, Path);
@@ -117,8 +119,8 @@ begin
   FileName := Path;
   While i < Length(Buf) do
   begin
-    BlockRead(fi, Buf[i], SizeOf(Buf), NumRead);
-    Inc(i, SizeOf(Buf));
+    BlockRead(fi, Buf[i], 1);
+    Inc(i, 1);
   end;
   CloseFile(fi);
 end;
@@ -126,12 +128,8 @@ end;
 procedure TMyApplication.WriteArch(AName: String);
 var
   fo: File of Char;
-  NumWrite: Int64 = 0;
   i: Int64 = 0;
   count: Word = 1;
-  is_solid: boolean = false;
-  fn_len: Byte;
-  packSize: Int64;
 begin
   AssignFile(fo, AName + '.upa');
   Rewrite(fo, 1);
@@ -140,6 +138,7 @@ begin
     'comp':  Write(fo, 'H', 'U', 'F', 'F');
     'arch':  Write(fo, 'N', 'O', 'P', 'E');
   end;
+  is_solid := false;
   BlockWrite(fo, is_solid, SizeOf(is_solid));
   BlockWrite(fo, count, SizeOf(count));
   fn_len := Length(FileName) - 1;
@@ -151,8 +150,8 @@ begin
 
   While i < Length(Buf) do
   begin
-    BlockWrite(fo, Buf[i], SizeOf(Buf), NumWrite);
-    inc(i, SizeOf(Buf));
+    BlockWrite(fo, Buf[i], 1);
+    inc(i, 1);
   end;
   CloseFile(fo);
 end;
@@ -160,11 +159,9 @@ end;
 procedure TMyApplication.ReadArch(Path: String);
 var
   fi: File of Char;
-  sign: array[1..3] of Char;
-  TypeCompress: array[1..4] of Char;
+  sign: array[1..3] of Char = '';
+  TypeCompress: array[1..4] of Char = '';
   i: Int64 = 0;
-  NumRead: Int64;
-
 begin
   AssignFile(fi, Path);
   Reset(fi, 1);
@@ -179,11 +176,20 @@ begin
     Compress := True
   else
     Compress := False;
-  SetLength(Buf, FileSize(fi) - 7);
-  While i < Length(Buf) - 1 do
+
+  BlockRead(fi, is_solid, SizeOf(is_solid) + 1);        //1 +1
+  BlockRead(fi, count, SizeOf(count) + 1);              //4 +1
+  BlockRead(fi, fn_len, SizeOf(fn_len) + 1);            //1 +1
+  BlockRead(fi, FileName[1], Length(FileName));         //0
+  packSize := Length(Buf);
+  BlockRead(fi, packSize, SizeOf(packSize) + 1);        //8 +1
+  BlockRead(fi, OrigSize, SizeOf(OrigSize) + 2);        //8 +2
+
+  SetLength(Buf, FileSize(fi) - 35 - Length(FileName));
+  While i < Length(Buf) do
   begin
-    BlockRead(fi, Buf[i], SizeOf(Buf), NumRead);
-    inc(i, SizeOf(Buf));
+    BlockRead(fi, Buf[i], 1);
+    inc(i, 1);
   end;
   close(fi);
 end;
@@ -197,8 +203,8 @@ begin
   Rewrite(fo);
   While i < Length(Buf) do
   begin
-    BlockWrite(fo, Buf[i], SizeOf(Buf));
-    inc(i, SizeOf(Buf));
+    BlockWrite(fo, Buf[i], 1);
+    inc(i, 1);
   end;
   Close(fo);
 end;
