@@ -35,7 +35,6 @@ type
     function findsym(a: byte; Arr: array of symb): string;
     procedure MakeNewCodes(var Arr: array of symb);
     function Compress(var InputArray: array of byte): ByteArray;
-    procedure SortBySym(l, r: longint);
   end;
 
 var
@@ -109,52 +108,29 @@ begin
     sortArray(l, j);
 end;
 
-procedure TArch.SortBySym(l, r: longint);
-var
-  j, i, mid: longint;
-  buf: Symb;
-begin
-  i := l;
-  j := r;
-  mid := Alph[(i + j) div 2].Value;
-  repeat
-    while Alph[i].Value < mid do
-      Inc(i);
-    while Alph[j].Value > mid do
-      Dec(j);
-    if i <= j then
-    begin
-      buf := Alph[i];
-      Alph[i] := Alph[j];
-      Alph[j] := buf;
-      Inc(i);
-      Dec(j);
-    end;
-  until i > j;
-  if i < r then
-    SortBySym(i, r);
-  if j > l then
-    SortBySym(l, j);
-end;
-
 procedure TArch.getFrequency(Arr: array of byte);
 var
   a: byte;
   i: integer;
+  found: boolean;
 begin
-  Setlength(FreqTable, 256);
-  Setlength(Count, 256);
-  for a := 0 to high(FreqTable) do
-    FreqTable[a] := a;
   for k := 0 to high(Arr) do
   begin
     a := Arr[k];
+    found:=false;
     for i := 0 to High(FreqTable) do
       if a = FreqTable[i] then
       begin
         Inc(Count[i]);
+        found:=true;
         break;
       end;
+    if not found then begin
+      Setlength(FreqTable, length(FreqTable) + 1);
+      Setlength(Count, length(Count) + 1);
+      FreqTable[High(Freqtable)]:=a;
+      Inc(Count[high(Count)]);
+    end;
   end;
   Sort(0, High(FreqTable));
 end;
@@ -269,7 +245,8 @@ end;
 function TArch.Compress(var InputArray: array of byte): ByteArray;
 var
   curcode: string;
-  i, j, pos, index: integer;
+  i, j, pos,k, index: integer;
+  NilSym: symb;
 begin
   if length(InputArray) = 0 then
     exit;
@@ -279,21 +256,25 @@ begin
   MakeNewCodes(Symbol);
   Setlength(Result, 257);
   Setlength(Alph, 256);
+  NilSym.h:=0;
   for i := 0 to 255 do
-    Alph[i] := Symbol[i];
-  SortBySym(0, high(Alph));
+    for k:= 0 to high(Symbol) do
+      if Symbol[k].Value = i then begin
+        Alph[i]:=Symbol[k];
+        break;
+      end else
+    Alph[i] := NilSym;
   for i := 0 to 255 do
-    Result[i] := length(Alph[i].code);
+    Result[i] := Alph[i].h;
   index := 256;
+ for i:= 0 to 255 do
+   write(Alph[i].h);
+ readln;
   pos := 0;
-
-  for i := 0 to high(InputArray) do
-  begin
+  for i := 0 to high(InputArray) do begin
     curcode := findsym(InputArray[i], Symbol);
-    for j := 1 to length(curcode) do
-    begin
-      if pos = 7 then
-      begin
+    for j := 1 to length(curcode) do begin
+      if pos = 7 then begin
         pos := 0;
         Inc(index);
         Setlength(Result, length(Result) + 1);
